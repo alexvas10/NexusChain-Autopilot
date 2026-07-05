@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Ops Autopilot — Exception Queue</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.1rem; margin-top: 2.5rem; color: #444; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .card.resolved { opacity: 0.7; }
+    .meta { font-size: 0.8rem; color: #666; margin-bottom: 0.5rem; }
+    .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .badge.rfq { background: #e0edff; color: #1d4ed8; }
+    .badge.disruption { background: #ffe8d6; color: #b45309; }
+    .badge.approved { background: #dcfce7; color: #166534; }
+    .badge.rejected { background: #fee2e2; color: #991b1b; }
+    .payload { background: #f7f7f7; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; white-space: pre-wrap; margin: 0.5rem 0; }
+    .reasoning { font-style: italic; color: #555; margin: 0.5rem 0; }
+    form.decision { display: flex; gap: 0.5rem; align-items: center; }
+    input[type=text] { flex: 1; padding: 0.4rem; }
+    button { padding: 0.4rem 0.9rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    button.approve { background: #16a34a; color: white; }
+    button.reject { background: #dc2626; color: white; }
+    .empty { color: #888; }
+    table.lines { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.5rem 0; }
+    table.lines th, table.lines td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid #eee; }
+    .subtotal { font-weight: 600; margin-top: 0.25rem; }
+    .unresolved { color: #b45309; font-size: 0.85rem; }
+    .action-log { font-size: 0.85rem; color: #166534; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Ops Autopilot — Human-in-the-Loop Queue</h1>
+
+  <h2>Pending ({{ pending|length }})</h2>
+  {% if not pending %}
+    <p class="empty">No exceptions waiting for review.</p>
+  {% endif %}
+  {% for item in pending %}
+    {% set d = item.details|fromjson if item.details else {} %}
+    <div class="card">
+      <div class="meta">
+        <span class="badge {{ item.workflow }}">{{ item.workflow }}</span>
+        #{{ item.id }} · {{ item.created_at }}
+      </div>
+      <strong>{{ item.summary }}</strong>
+      <div class="payload">{{ item.payload }}</div>
+      <div class="reasoning">Agent reasoning: {{ item.reasoning }}</div>
+
+      {% if item.workflow == "rfq" %}
+        {% if d.line_items %}
+          <table class="lines">
+            <tr><th>Item</th><th>Spec</th><th>Qty</th><th>Unit price</th><th>Line total</th><th>Source</th></tr>
+            {% for li in d.line_items %}
+              <tr><td>{{ li.item_name }}</td><td>{{ li.spec or "—" }}</td><td>{{ li.qty }}</td>
+                  <td>${{ "%.2f"|format(li.unit_price) }}</td><td>${{ "%.2f"|format(li.line_total) }}</td>
+                  <td>{{ li.source }}</td></tr>
+            {% endfor %}
+          </table>
+          <div class="subtotal">Subtotal (priced items): ${{ "%.2f"|format(d.subtotal) }}</div>
+        {% endif %}
+        {% if d.unresolved_items %}
+          <div class="unresolved">Needs clarification:
+            {% for u in d.unresolved_items %}
+              {{ u.item_name }} (qty {{ u.qty }}) — {{ u.reason }}{% if not loop.last %}; {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% elif item.workflow == "disruption" %}
+        {% if d.affected_orders %}
+          <table class="lines">
+            <tr><th>Order</th><th>Customer</th><th>Destination</th></tr>
+            {% for o in d.affected_orders %}
+              <tr><td>{{ o.order_id }}</td><td>{{ o.customer }}</td><td>{{ o.destination }}</td></tr>
+            {% endfor %}
+          </table>
+        {% endif %}
+        {% if d.current_route and d.recommended_route %}
+          <div>Current: {{ d.current_route.carrier }} ({{ d.current_route.mode }}), ETA {{ d.current_route.eta_days }}d,
+            ${{ "%.2f"|format(d.current_route.cost_per_shipment) }}</div>
+          <div>Recommended: {{ d.recommended_route.carrier }} ({{ d.recommended_route.mode }}), ETA {{ d.recommended_route.eta_days }}d,
+            ${{ "%.2f"|format(d.recommended_route.cost_per_shipment) }}</div>
+          <div class="subtotal">Cost delta: ${{ "%.2f"|format(d.cost_delta) }} · Time saved: {{ d.time_saved_days }}d</div>
+        {% endif %}
+        {% if d.weather %}<div class="reasoning">Weather at destination: {{ d.weather.condition }}</div>{% endif %}
+      {% endif %}
+
+      <form class="decision" method="post" action="/dashboard/{{ item.id }}/decision">
+        <input type="text" name="notes" placeholder="Optional note / clarification" />
+        <button class="approve" type="submit" name="action" value="approve">Approve</button>
+        <button class="reject" type="submit" name="action" value="reject">Reject</button>
+      </form>
+    </div>
+  {% endfor %}
+
+  <h2>Recently resolved</h2>
+  {% for item in resolved %}
+    <div class="card resolved">
+      <div class="meta">
+        <span class="badge {{ item.workflow }}">{{ item.workflow }}</span>
+        <span class="badge {{ item.status }}">{{ item.status }}</span>
+        #{{ item.id }} · resolved {{ item.resolved_at }}
+      </div>
+      <strong>{{ item.summary }}</strong>
+      {% if item.resolution_notes %}<div class="reasoning">Note: {{ item.resolution_notes }}</div>{% endif %}
+      {% if item.action_log %}<div class="action-log">{{ item.action_log }}</div>{% endif %}
+    </div>
+  {% endfor %}
+</body>
+</html>
