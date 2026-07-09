@@ -1,9 +1,11 @@
-"""Workflow B: disruption response — given a shipment/logistics alert, find affected
-orders, evaluate an alternate route, and price the cost delta of rerouting.
+"""Workflow B: disruption response — a Qwen tool-use agent investigates the alert
+(ERP orders, routes, weather), then a deterministic layer independently recomputes the
+financials and applies the approval guardrail. The model recommends; the arithmetic
+that money depends on is never delegated to it.
 """
 
+from app.agent import run_disruption_agent
 from app.config import DISRUPTION_COST_APPROVAL_THRESHOLD
-from app.qwen_client import classify_request
 from app.tools import (
     get_alternate_route,
     get_orders_by_shipment,
@@ -14,11 +16,21 @@ from app.tools import (
 
 
 def process_disruption(shipment_id: str, alert_text: str, location: str | None = None) -> dict:
-    classification = classify_request("disruption", alert_text)
+    agent = run_disruption_agent(shipment_id, alert_text, location)
+    classification = {
+        "decision": agent["decision"],
+        "summary": agent["summary"],
+        "reasoning": agent["reasoning"],
+    }
+    agent_trace = agent.get("trace", [])
+
+    # Deterministic verification layer: recompute affected orders, routes, and the cost
+    # delta from source data rather than trusting the agent's account of them.
     orders = get_orders_by_shipment(shipment_id)
     if not orders:
         return {
             "classification": classification,
+            "agent_trace": agent_trace,
             "shipment_id": shipment_id,
             "error": f"no orders found for shipment {shipment_id}",
             "needs_human_review": True,
@@ -32,6 +44,7 @@ def process_disruption(shipment_id: str, alert_text: str, location: str | None =
     if alt is None:
         return {
             "classification": classification,
+            "agent_trace": agent_trace,
             "shipment_id": shipment_id,
             "affected_orders": orders,
             "current_route": {"id": current_route_id, **current_route},
@@ -50,6 +63,8 @@ def process_disruption(shipment_id: str, alert_text: str, location: str | None =
 
     return {
         "classification": classification,
+        "agent_trace": agent_trace,
+        "recommend_reroute": agent.get("recommend_reroute", False),
         "shipment_id": shipment_id,
         "affected_orders": orders,
         "current_route": {"id": current_route_id, **current_route},

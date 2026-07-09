@@ -293,8 +293,10 @@
   </p>
   <p class="status">
     <strong>Build status:</strong> business logic and API verified locally against mock
-    tools and SQLite. Qwen Cloud call sites and Alibaba Cloud services (orange, below) are
-    wired and tested with a stand-in key/local fallback — not yet exercised against live
+    tools and SQLite. Qwen Cloud (blue, below) is <strong style="color:inherit">live</strong> —
+    both <code>classify_request()</code> and the RFQ/disruption flows have been exercised
+    end-to-end with a real DashScope key. Alibaba Cloud managed services (orange, below) are
+    wired and tested with a local fallback — not yet exercised against live Alibaba Cloud
     credentials.
   </p>
 

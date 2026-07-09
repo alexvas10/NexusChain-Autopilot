@@ -6,6 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 
 
+def utcnow() -> datetime.datetime:
+    """Naive UTC timestamp (datetime.utcnow is deprecated in Python 3.12+)."""
+    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+
+
 class Exception_(Base):
     """A pending or resolved human-in-the-loop checkpoint raised by a workflow."""
 
@@ -22,7 +27,5 @@ class Exception_(Base):
     action_log: Mapped[str | None] = mapped_column(Text, nullable=True)  # what the agent executed post-decision
     payload_archive_uri: Mapped[str | None] = mapped_column(Text, nullable=True)  # OSS (or local) archive of raw payload
     resolution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utcnow)
     resolved_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)

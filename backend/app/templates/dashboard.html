@@ -28,6 +28,13 @@
     .subtotal { font-weight: 600; margin-top: 0.25rem; }
     .unresolved { color: #b45309; font-size: 0.85rem; }
     .action-log { font-size: 0.85rem; color: #166534; margin-top: 0.5rem; }
+    details.trace { margin: 0.5rem 0; font-size: 0.85rem; }
+    details.trace summary { cursor: pointer; color: #1d4ed8; font-weight: 600; }
+    .trace-step { font-family: ui-monospace, monospace; font-size: 0.78rem; background: #f7f7f7;
+                  padding: 0.3rem 0.6rem; border-radius: 6px; margin: 0.25rem 0; overflow-x: auto; }
+    .trace-step .fn { color: #7c3aed; font-weight: 600; }
+    .reply-draft { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px;
+                   padding: 0.5rem 0.75rem; font-size: 0.85rem; white-space: pre-wrap; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -84,6 +91,14 @@
           <div class="subtotal">Cost delta: ${{ "%.2f"|format(d.cost_delta) }} · Time saved: {{ d.time_saved_days }}d</div>
         {% endif %}
         {% if d.weather %}<div class="reasoning">Weather at destination: {{ d.weather.condition }}</div>{% endif %}
+        {% if d.agent_trace %}
+          <details class="trace">
+            <summary>Agent investigation — {{ d.agent_trace|length }} tool call(s)</summary>
+            {% for step in d.agent_trace %}
+              <div class="trace-step"><span class="fn">{{ step.tool }}</span>({{ step.arguments|tojson }}) → {{ step.result|tojson|truncate(160) }}</div>
+            {% endfor %}
+          </details>
+        {% endif %}
       {% endif %}
 
       <form class="decision" method="post" action="/dashboard/{{ item.id }}/decision">
@@ -96,6 +111,7 @@
 
   <h2>Recently resolved</h2>
   {% for item in resolved %}
+    {% set d = item.details|fromjson if item.details else {} %}
     <div class="card resolved">
       <div class="meta">
         <span class="badge {{ item.workflow }}">{{ item.workflow }}</span>
@@ -105,6 +121,11 @@
       <strong>{{ item.summary }}</strong>
       {% if item.resolution_notes %}<div class="reasoning">Note: {{ item.resolution_notes }}</div>{% endif %}
       {% if item.action_log %}<div class="action-log">{{ item.action_log }}</div>{% endif %}
+      {% if d.customer_reply_draft %}
+        <div class="reply-draft"><strong>Drafted reply — {{ d.customer_reply_draft.subject }}</strong>
+
+{{ d.customer_reply_draft.body }}</div>
+      {% endif %}
     </div>
   {% endfor %}
 </body>

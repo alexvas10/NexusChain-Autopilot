@@ -62,7 +62,13 @@ def process_rfq(text: str) -> dict:
             }
         )
 
-    needs_human_review = classification.get("decision") == "human_review" or bool(unresolved_items)
+    # No extractable items means either an empty request or a failed extraction call —
+    # either way a human should look before a customer gets silence.
+    needs_human_review = (
+        classification.get("decision") == "human_review"
+        or bool(unresolved_items)
+        or not raw_items
+    )
 
     return {
         "classification": classification,

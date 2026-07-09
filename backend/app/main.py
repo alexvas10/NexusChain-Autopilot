@@ -1,4 +1,3 @@
-import datetime
 import json
 import uuid
 
@@ -8,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.db import Base, engine, get_db
-from app.models import Exception_
+from app.models import Exception_, utcnow
 from app.oss_client import store_payload
 from app.schemas import (
     DecisionRequest,
@@ -18,6 +17,7 @@ from app.schemas import (
     IntakeRequest,
     IntakeResponse,
 )
+from app.qwen_client import draft_customer_reply
 from app.slack_client import send_approval_message
 from app.workflows.disruption import execute_reroute, process_disruption
 from app.workflows.rfq import process_rfq
@@ -41,7 +41,16 @@ def _execute_post_decision(record: Exception_) -> str:
     if record.workflow == "rfq":
         if record.status == "approved":
             return "Quote finalized and sent to customer."
-        return "RFQ declined; no quote sent to customer."
+        # Rejection closes the loop with the customer: Qwen drafts the clarification /
+        # decline email from the unresolved items and the reviewer's note.
+        reply = draft_customer_reply(
+            record.payload, details.get("unresolved_items", []), record.resolution_notes
+        )
+        if reply:
+            details["customer_reply_draft"] = reply
+            record.details = json.dumps(details)
+            return "RFQ declined; clarification email drafted for customer review."
+        return "RFQ declined; no quote sent to customer (reply drafting unavailable)."
     return record.action_log or ""
 
 
@@ -82,7 +91,7 @@ def intake(req: IntakeRequest, db: Session = Depends(get_db)):
     )
     if not needs_human:
         record.action_log = "Quote finalized and sent to customer."
-        record.resolved_at = datetime.datetime.utcnow()
+        record.resolved_at = utcnow()
 
     db.add(record)
     db.commit()
@@ -126,7 +135,7 @@ def disruption_webhook(req: DisruptionAlertRequest, db: Session = Depends(get_db
         send_approval_message(record.id, record.summary, result.get("cost_delta", 0.0))
     else:
         record.action_log = _execute_post_decision(record)
-        record.resolved_at = datetime.datetime.utcnow()
+        record.resolved_at = utcnow()
         db.commit()
         db.refresh(record)
 
@@ -136,6 +145,7 @@ def disruption_webhook(req: DisruptionAlertRequest, db: Session = Depends(get_db
         cost_delta=result.get("cost_delta"),
         recommended_route=result.get("recommended_route"),
         action_log=record.action_log,
+        agent_trace=result.get("agent_trace"),
     )
 
 
@@ -157,7 +167,7 @@ def decide_exception(exception_id: int, req: DecisionRequest, db: Session = Depe
 
     record.status = "approved" if req.action == "approve" else "rejected"
     record.resolution_notes = req.notes
-    record.resolved_at = datetime.datetime.utcnow()
+    record.resolved_at = utcnow()
     record.action_log = _execute_post_decision(record)
     db.commit()
     db.refresh(record)
