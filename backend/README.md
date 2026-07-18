@@ -1,6 +1,6 @@
-# Ops Autopilot — backend
+# NexusChain Autopilot — backend
 
-FastAPI backend for the Track 4 "Ops Autopilot" agent: a shared agent core (Qwen
+FastAPI backend for the Track 4 "NexusChain Autopilot" agent: a shared agent core (Qwen
 tool-use agent + exception classifier, exception queue via SQLAlchemy, audit trail)
 with two pluggable workflow playbooks:
 

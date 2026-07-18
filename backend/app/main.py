@@ -24,7 +24,7 @@ from app.workflows.rfq import process_rfq
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Ops Autopilot")
+app = FastAPI(title="NexusChain Autopilot")
 templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["fromjson"] = json.loads
 

@@ -53,7 +53,7 @@ def _chat_json(system_prompt: str, user_content: str) -> dict:
     return parse_json_reply(message.content)
 
 
-_SYSTEM_PROMPT = """You are the exception classifier for an "Ops Autopilot" agent that \
+_SYSTEM_PROMPT = """You are the exception classifier for an "NexusChain Autopilot" agent that \
 automates business workflows (RFQ quoting, shipment disruption response).
 
 Given a workflow name and a raw inbound request (email text, alert text, etc.), decide \

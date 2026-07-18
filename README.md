@@ -1,4 +1,4 @@
-# Ops Autopilot
+# NexusChain Autopilot
 
 **An autopilot agent for back-office operations, built on Qwen Cloud.** It automates two
 real business workflows end-to-end — RFQ quoting and shipment-disruption response — and

@@ -10,7 +10,7 @@ import os
 import pathlib
 
 # Must be set before any app module import: db.py builds its engine at import time.
-os.environ["DATABASE_URL"] = "sqlite:///./test_ops_autopilot.db"
+os.environ["DATABASE_URL"] = "sqlite:///./test_nexuschain_autopilot.db"
 os.environ.setdefault("DASHSCOPE_API_KEY", "test-key-not-used")
 
 import pytest  # noqa: E402
@@ -29,7 +29,7 @@ def restore_mock_data():
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_test_db():
     yield
-    pathlib.Path("test_ops_autopilot.db").unlink(missing_ok=True)
+    pathlib.Path("test_nexuschain_autopilot.db").unlink(missing_ok=True)
 
 
 # --- Canned Qwen responses -------------------------------------------------------

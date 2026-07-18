@@ -15,7 +15,7 @@ def send_approval_message(exception_id: int, summary: str, cost_delta: float) ->
         f":rotating_light: *Disruption exception #{exception_id}*\n"
         f"{summary}\n"
         f"Estimated cost delta: *${cost_delta:,.2f}*\n"
-        f"Approve or reject at the Ops Autopilot dashboard: /dashboard#{exception_id}"
+        f"Approve or reject at the NexusChain Autopilot dashboard: /dashboard#{exception_id}"
     )
     if SLACK_WEBHOOK_URL:
         httpx.post(SLACK_WEBHOOK_URL, json={"text": text}, timeout=10)

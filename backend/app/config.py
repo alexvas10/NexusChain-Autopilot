@@ -9,7 +9,7 @@ DASHSCOPE_BASE_URL = os.getenv(
     "DASHSCOPE_BASE_URL", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
 )
 QWEN_MODEL = os.getenv("QWEN_MODEL", "qwen-plus")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ops_autopilot.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./nexuschain_autopilot.db")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 
 # Alibaba Cloud OSS — raw request payloads (would be inbound emails/PDFs in production)
