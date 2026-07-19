@@ -9,8 +9,8 @@ quoted, rerouted, or sent to a customer.
 
 ## What it does
 
-- **RFQ intake.** Takes a messy free-text quote request ("I need 50 heavy-duty bolts,
-  ship ASAP"), extracts structured line items with Qwen, and prices them against
+- **RFQ intake.** Takes a messy free-text quote request (for example, "I need 50
+  heavy-duty bolts, ship ASAP"), extracts structured line items with Qwen, and prices them against
   inventory and vendor-catalog tools. Any item with a missing or unclear spec is flagged
   for review. When a reviewer rejects a quote, Qwen drafts the clarification email back
   to the customer from the unresolved items and the reviewer's note, so the human
