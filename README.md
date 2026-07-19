@@ -76,8 +76,7 @@ flowchart LR
     X & Y --> F
 ```
 
-A styled version lives at [`docs/architecture.html`](docs/architecture.html). At
-runtime, a Docker container on **Alibaba Cloud ECS** serves the API, **RDS (PostgreSQL)**
+At runtime, a Docker container on **Alibaba Cloud ECS** serves the API, **RDS (PostgreSQL)**
 holds the audit store, raw payloads are archived to **OSS**
 ([`backend/app/oss_client.py`](backend/app/oss_client.py)), and model calls go to
 **Qwen via DashScope**.
@@ -138,7 +137,6 @@ See [`backend/README.md`](backend/README.md) for the full API reference and
 | `backend/app/oss_client.py` | Alibaba Cloud OSS payload archiving |
 | `backend/app/main.py` | API and HITL dashboard routes |
 | `backend/tests/` | 25-test suite (workflows, agent loop, API) |
-| `docs/` | Architecture diagram, demo script, submission text |
 
 ## License
 
